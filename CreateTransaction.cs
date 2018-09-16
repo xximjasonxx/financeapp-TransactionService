@@ -26,8 +26,9 @@ namespace TransactionService.Functions
                 return new NotFoundResult();
 
             var transaction = JsonConvert.DeserializeObject<Transaction>(await req.ReadAsStringAsync());
+            transaction.Owner = Guid.Parse(user.UserId);
+            transaction.CreatedData = DateTime.UtcNow;
             await TransService.WriteNewTransaction(transaction);
-            
 
             return new AcceptedResult(transaction.Id.ToString(), transaction.Id.ToString());
         }
