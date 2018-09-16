@@ -15,10 +15,10 @@ using TransactionService.Models;
 
 namespace TransactionService.Functions
 {
-    public static class CreateTransaction
+    public static class TransactionFunctions
     {
         [FunctionName("CreateTransaction")]
-        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequest req, ILogger log)
+        public static async Task<IActionResult> CreateTransaction([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger log)
         {
             var token = req.Headers["auth-key"].ToString().AsJwtToken();
             var user = await TokenService.GetUserIdForToken(token);
@@ -31,6 +31,14 @@ namespace TransactionService.Functions
             await TransService.WriteNewTransaction(transaction);
 
             return new AcceptedResult(transaction.Id.ToString(), transaction.Id.ToString());
+        }
+
+        [FunctionName("ProcessTransactions")]
+        public static async Task<IActionResult> ProcessTransactions([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger log)
+        {
+            log.LogInformation("Request Received");
+
+            return new OkResult();
         }
     }
 }
