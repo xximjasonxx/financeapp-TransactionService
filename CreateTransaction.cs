@@ -1,0 +1,35 @@
+
+using System;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using TransactionService.Services;
+using TransactionService.Extensions;
+using TransactionService.Models;
+
+namespace TransactionService.Functions
+{
+    public static class CreateTransaction
+    {
+        [FunctionName("CreateTransaction")]
+        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequest req, ILogger log)
+        {
+            var token = req.Headers["auth-key"].ToString().AsJwtToken();
+            var user = await TokenService.GetUserIdForToken(token);
+            if (user == null)
+                return new NotFoundResult();
+
+            var transaction = JsonConvert.DeserializeObject<Transaction>(await req.ReadAsStringAsync());
+            await TransService.WriteNewTransaction(transaction);
+            
+
+            return new AcceptedResult(transaction.Id.ToString(), transaction.Id.ToString());
+        }
+    }
+}
