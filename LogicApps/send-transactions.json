@@ -1,0 +1,38 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "ProcessTransactions": {
+                "inputs": {
+                    "body": "@triggerBody()['items']",
+                    "function": {
+                        "id": "/subscriptions/cd46f7e3-6631-46d9-990c-6d18ee3ba8ef/resourceGroups/FinanceApp/providers/Microsoft.Web/sites/financeapp-TransactionService/functions/ProcessTransactions"
+                    }
+                },
+                "runAfter": {},
+                "type": "Function"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {},
+        "triggers": {
+            "Batch_messages": {
+                "inputs": {
+                    "configurations": {
+                        "TransactionsBatch": {
+                            "releaseCriteria": {
+                                "recurrence": {
+                                    "frequency": "minute",
+                                    "interval": 1
+                                }
+                            }
+                        }
+                    },
+                    "mode": "Inline"
+                },
+                "type": "Batch"
+            }
+        }
+    }
+}
