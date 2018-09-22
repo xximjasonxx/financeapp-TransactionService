@@ -29,7 +29,7 @@ namespace TransactionService.Functions
 
             var transaction = JsonConvert.DeserializeObject<Transaction>(await req.ReadAsStringAsync());
             transaction.Owner = Guid.Parse(user.UserId);
-            transaction.CreatedData = DateTime.UtcNow;
+            transaction.CreatedDate = DateTime.UtcNow;
             await TransService.WriteNewTransaction(transaction);
             await TransService.SendTransactionForProcessing(transaction);
 
