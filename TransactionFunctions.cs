@@ -1,5 +1,6 @@
 
 using System;
+using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,7 @@ using Newtonsoft.Json;
 using TransactionService.Services;
 using TransactionService.Extensions;
 using TransactionService.Models;
+using Newtonsoft.Json.Linq;
 
 namespace TransactionService.Functions
 {
@@ -29,6 +31,7 @@ namespace TransactionService.Functions
             transaction.Owner = Guid.Parse(user.UserId);
             transaction.CreatedData = DateTime.UtcNow;
             await TransService.WriteNewTransaction(transaction);
+            await TransService.SendTransactionForProcessing(transaction);
 
             return new AcceptedResult(transaction.Id.ToString(), transaction.Id.ToString());
         }
@@ -36,9 +39,20 @@ namespace TransactionService.Functions
         [FunctionName("ProcessTransactions")]
         public static async Task<IActionResult> ProcessTransactions([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger log)
         {
-            log.LogInformation("Request Received");
+            var batchArray = JArray.Parse(await req.ReadAsStringAsync());
+            await Task.Run(() => {
+                var sendTasks = batchArray.Select(obj => JsonConvert.DeserializeObject<Transaction>(obj["content"].ToString()))
+                    .GroupBy(x => x.TargetAccount)
+                    .Select(group => QueueService.PostAmountChangeEvent(new AmountChangeEvent
+                    {
+                        TargetAccountId = group.Key.ToString(),
+                        ValueChangeAmount = group.Sum(x => x.Amount)
+                    })).ToArray();
 
-            return new OkResult();
+                Task.WaitAll(sendTasks);
+            });
+
+            return new AcceptedResult();
         }
     }
 }

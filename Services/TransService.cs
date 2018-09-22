@@ -1,6 +1,8 @@
 using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using MongoDB.Driver;
+using Newtonsoft.Json;
 using TransactionService.Models;
 
 namespace TransactionService.Services
@@ -20,6 +22,20 @@ namespace TransactionService.Services
             await collection.InsertOneAsync(transaction);
 
             return transaction.Id;
+        }
+
+        public static async Task SendTransactionForProcessing(Transaction transaction)
+        {
+            using (var client = new HttpClient())
+            {
+                var jsonContent = JsonConvert.SerializeObject(transaction);
+                var requestPayload = new StringContent(jsonContent);
+                var response = await client.PostAsync(Environment.GetEnvironmentVariable("SendTransactionsLogicAppUrl", EnvironmentVariableTarget.Process), requestPayload);
+                if (!response.IsSuccessStatusCode)
+                    throw new Exception("Failed to send Transaction for Processing");
+
+                return;
+            }
         }
     }
 }
