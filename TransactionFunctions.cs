@@ -14,6 +14,7 @@ using TransactionService.Services;
 using TransactionService.Extensions;
 using TransactionService.Models;
 using Newtonsoft.Json.Linq;
+using System.Net.Http;
 
 namespace TransactionService.Functions
 {
@@ -39,7 +40,29 @@ namespace TransactionService.Functions
         [FunctionName("CreateDeposit")]
         public static async Task<IActionResult> CreateDeposit([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger log)
         {
-            return new AcceptedResult(Guid.NewGuid().ToString(), string.Empty);
+            var token = req.Headers["auth-key"].ToString().AsJwtToken();
+            var user = await TokenService.GetUserIdForToken(token);
+            if (user == null)
+                return new NotFoundResult();
+
+            var request = JsonConvert.DeserializeObject<DepositRequest>(await req.Content.ReadAsStringAsync());
+            var imageBytes = Convert.FromBase64String(request.DepositImageBase64);
+            var imageId = await BlobService.SaveDepositImageAsync(imageBytes);
+
+            await QueueService.PostDepositForProcessing(new PendingDeposit
+            {
+                Initiator = user.UserId,
+                TargetAccount = request.TargetAccount,
+                DepositImageUrl = BlobService.GetDepositImageUrl(imageId)
+            });
+
+            return new AcceptedResult(string.Empty, string.Empty);
+        }
+
+        [FunctionName("ProcessDeposit")]
+        public static async Task ProcessDeposit([ServiceBusTrigger("application-queue", Connection = "ServiceBusConnection")]string applicationContents, TraceWriter logger)
+        {
+            
         }
 
         [FunctionName("ProcessTransactions")]
