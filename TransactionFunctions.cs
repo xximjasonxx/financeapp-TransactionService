@@ -36,6 +36,12 @@ namespace TransactionService.Functions
             return new AcceptedResult(transaction.Id.ToString(), transaction.Id.ToString());
         }
 
+        [FunctionName("CreateDeposit")]
+        public static async Task<IActionResult> CreateDeposit([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger log)
+        {
+            return new AcceptedResult(Guid.NewGuid().ToString(), string.Empty);
+        }
+
         [FunctionName("ProcessTransactions")]
         public static async Task<IActionResult> ProcessTransactions([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger log)
         {
