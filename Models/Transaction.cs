@@ -32,5 +32,7 @@ namespace TransactionService.Models
         public Guid Owner { get; set; }
 
         public DateTime CreatedDate { get; set; }
+
+        public TransactionStatus Status { get; set; }
     }
 }
