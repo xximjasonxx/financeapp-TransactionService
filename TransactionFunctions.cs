@@ -60,7 +60,7 @@ namespace TransactionService.Functions
         }
 
         [FunctionName("ProcessDeposit")]
-        public static async Task ProcessDeposit([ServiceBusTrigger("application-queue", Connection = "ServiceBusConnectionString")]string depositContents, ILogger logger)
+        public static async Task ProcessDeposit([ServiceBusTrigger("new-deposits", Connection = "ServiceBusConnectionString")]string depositContents, ILogger logger)
         {
             var pendingDeposit = JsonConvert.DeserializeObject<PendingDeposit>(depositContents);
             var amount = await VisionService.DetermineImageValueAsync(pendingDeposit.DepositImageUrl);
