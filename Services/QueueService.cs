@@ -23,7 +23,7 @@ namespace TransactionService.Services
         public static async Task PostDepositForProcessing(PendingDeposit pendingDeposit)
         {
             var connectionString = Environment.GetEnvironmentVariable("ServiceBusConnectionString", EnvironmentVariableTarget.Process);
-            var client = new QueueClient(connectionString, "deposit-images");
+            var client = new QueueClient(connectionString, "new-deposits");
 
             var rawContents = JsonConvert.SerializeObject(pendingDeposit);
             var message = new Message(Encoding.UTF8.GetBytes(rawContents));
