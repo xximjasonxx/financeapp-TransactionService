@@ -51,11 +51,12 @@ namespace TransactionService.Functions
 
             var pendingDeposit = new PendingDeposit
             {
-                ImageId = imageId,
+                ImageUrl = BlobService.GetDepositImageUrl(imageId),
                 TargetAccount = request.TargetAccount,
                 DepositOwner = user.UserId
             };
 
+            await TransService.RecordDepositRequest(pendingDeposit);
             await QueueService.PostDepositForProcessing(pendingDeposit);
             
             return new AcceptedResult(imageId, imageId);
@@ -65,8 +66,7 @@ namespace TransactionService.Functions
         public static async Task ProcessDeposit([ServiceBusTrigger("new-deposits", Connection = "ServiceBusConnectionString")]string pendingDepositContents, ILogger logger)
         {
             var pendingDeposit = JsonConvert.DeserializeObject<PendingDeposit>(pendingDepositContents);
-            var imageUrl = BlobService.GetDepositImageUrl(pendingDeposit.ImageId);
-            var amount = await VisionService.DetermineImageValueAsync(imageUrl);
+            var amount = await VisionService.DetermineImageValueAsync(pendingDeposit.ImageUrl);
 
             var transaction = new Transaction
             {

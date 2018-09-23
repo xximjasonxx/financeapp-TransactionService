@@ -10,16 +10,16 @@ namespace TransactionService.Services
 {
     public static class TransService
     {
-        static IMongoCollection<Transaction> GetCollection()
+        static IMongoDatabase GetDatabase()
         {
             var client = new MongoClient(Environment.GetEnvironmentVariable("MongoConnectionString", EnvironmentVariableTarget.Process));
-            var database = client.GetDatabase("transactions");
-            return database.GetCollection<Transaction>("transactions");
+            return client.GetDatabase("transactions");
         }
 
         public static async Task<string> WriteNewTransactionAsync(Transaction transaction)
         {
-            var collection = GetCollection();
+            var database = GetDatabase();
+            var collection = database.GetCollection<Transaction>("transactions");
 
             transaction.Status = TransactionStatus.Pending;
             await collection.InsertOneAsync(transaction);
@@ -43,10 +43,20 @@ namespace TransactionService.Services
 
         public static async Task ApproveTransaction(Transaction transaction)
         {
-            var collection = GetCollection();
+            var database = GetDatabase();
+            var collection = database.GetCollection<Transaction>("transactions");
             var updateDef = Builders<Transaction>.Update.Set(o => o.Status, TransactionStatus.Approved);
             
             await collection.UpdateOneAsync(o => o._Id == transaction._Id, updateDef);
+        }
+
+        public static async Task<string> RecordDepositRequest(PendingDeposit pendingDeposit)
+        {
+            var database = GetDatabase();
+            var collection = database.GetCollection<PendingDeposit>("deposit-requests");
+
+            await collection.InsertOneAsync(pendingDeposit);
+            return pendingDeposit.Id;
         }
     }
 }
