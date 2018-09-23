@@ -56,10 +56,10 @@ namespace TransactionService.Functions
                 DepositOwner = user.UserId
             };
 
-            await TransService.RecordDepositRequest(pendingDeposit);
+            var depositId = await TransService.RecordDepositRequest(pendingDeposit);
             await QueueService.PostDepositForProcessing(pendingDeposit);
             
-            return new AcceptedResult(imageId, imageId);
+            return new AcceptedResult(depositId, depositId);
         }
 
         [FunctionName("ProcessDeposit")]
