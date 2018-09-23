@@ -16,7 +16,7 @@ namespace TransactionService.Services
             return database.GetCollection<Transaction>("transactions");
         }
 
-        public static async Task<string> WriteNewTransaction(Transaction transaction)
+        public static async Task<string> WriteNewTransactionAsync(Transaction transaction)
         {
             var collection = GetCollection();
             await collection.InsertOneAsync(transaction);
@@ -24,7 +24,7 @@ namespace TransactionService.Services
             return transaction.Id;
         }
 
-        public static async Task SendTransactionForProcessing(Transaction transaction)
+        public static async Task SendTransactionForProcessingAsync(Transaction transaction)
         {
             using (var client = new HttpClient())
             {
