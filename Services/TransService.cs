@@ -1,6 +1,7 @@
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 using TransactionService.Models;
@@ -19,6 +20,8 @@ namespace TransactionService.Services
         public static async Task<string> WriteNewTransactionAsync(Transaction transaction)
         {
             var collection = GetCollection();
+
+            transaction.Status = TransactionStatus.Pending;
             await collection.InsertOneAsync(transaction);
 
             return transaction.Id;
@@ -36,6 +39,14 @@ namespace TransactionService.Services
 
                 return;
             }
+        }
+
+        public static async Task ApproveTransaction(Transaction transaction)
+        {
+            var collection = GetCollection();
+            var updateDef = Builders<Transaction>.Update.Set(o => o.Status, TransactionStatus.Approved);
+            
+            await collection.UpdateOneAsync(o => o._Id == transaction._Id, updateDef);
         }
     }
 }

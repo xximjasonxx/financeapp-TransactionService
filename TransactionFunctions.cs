@@ -49,31 +49,37 @@ namespace TransactionService.Functions
             var imageBytes = Convert.FromBase64String(request.DepositImageBase64);
             var imageId = await BlobService.SaveDepositImageAsync(imageBytes);
 
-            await QueueService.PostDepositForProcessing(new PendingDeposit
+            var pendingDeposit = new PendingDeposit
             {
-                Initiator = user.UserId,
+                ImageId = imageId,
                 TargetAccount = request.TargetAccount,
-                DepositImageUrl = BlobService.GetDepositImageUrl(imageId)
-            });
+                DepositOwner = user.UserId
+            };
+
+            await QueueService.PostDepositForProcessing(pendingDeposit);
             
             return new AcceptedResult(imageId, imageId);
         }
 
         [FunctionName("ProcessDeposit")]
-        public static async Task ProcessDeposit([ServiceBusTrigger("new-deposits", Connection = "ServiceBusConnectionString")]string depositContents, ILogger logger)
+        public static async Task ProcessDeposit([ServiceBusTrigger("new-deposits", Connection = "ServiceBusConnectionString")]string pendingDepositContents, ILogger logger)
         {
-            var pendingDeposit = JsonConvert.DeserializeObject<PendingDeposit>(depositContents);
-            var amount = await VisionService.DetermineImageValueAsync(pendingDeposit.DepositImageUrl);
-            var depositTransaction = new Transaction()
+            var pendingDeposit = JsonConvert.DeserializeObject<PendingDeposit>(pendingDepositContents);
+            var imageUrl = BlobService.GetDepositImageUrl(pendingDeposit.ImageId);
+            var amount = await VisionService.DetermineImageValueAsync(imageUrl);
+
+            var transaction = new Transaction
             {
+                CreatedDate = DateTime.UtcNow,
                 TargetAccount = Guid.Parse(pendingDeposit.TargetAccount),
-                Amount = amount,
-                Owner = Guid.Parse(pendingDeposit.Initiator),
-                CreatedDate = DateTime.UtcNow
+                Owner = Guid.Parse(pendingDeposit.DepositOwner),
+                Amount = amount
             };
 
-            await TransService.WriteNewTransactionAsync(depositTransaction);
-            await TransService.SendTransactionForProcessingAsync(depositTransaction);
+            var transactionId = await TransService.WriteNewTransactionAsync(transaction);
+            transaction.Id = transactionId;
+
+            await TransService.SendTransactionForProcessingAsync(transaction);
         }
 
         [FunctionName("ProcessTransactions")]
@@ -81,7 +87,9 @@ namespace TransactionService.Functions
         {
             var batchArray = JArray.Parse(await req.ReadAsStringAsync());
             await Task.Run(() => {
-                var sendTasks = batchArray.Select(obj => JsonConvert.DeserializeObject<Transaction>(obj["content"].ToString()))
+                var rawTransactions = batchArray.Select(obj => JsonConvert.DeserializeObject<Transaction>(obj["content"].ToString()));
+
+                var sendTasks = rawTransactions
                     .GroupBy(x => x.TargetAccount)
                     .Select(group => QueueService.PostAmountChangeEvent(new AmountChangeEvent
                     {
@@ -90,6 +98,9 @@ namespace TransactionService.Functions
                     })).ToArray();
 
                 Task.WaitAll(sendTasks);
+
+                var updateTasks = rawTransactions.Select(transaction => TransService.ApproveTransaction(transaction)).ToArray();
+                Task.WaitAll(updateTasks);
             });
 
             return new AcceptedResult();
