@@ -30,7 +30,7 @@ namespace TransactionService.Services
             var container = GetClient().GetContainerReference("deposit-images");
             var blob = container.GetBlockBlobReference(imageId);
 
-            return blob.StorageUri.ToString();
+            return blob.StorageUri.PrimaryUri.ToString();
         }
     }
 }

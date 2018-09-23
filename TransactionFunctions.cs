@@ -31,8 +31,8 @@ namespace TransactionService.Functions
             var transaction = JsonConvert.DeserializeObject<Transaction>(await req.ReadAsStringAsync());
             transaction.Owner = Guid.Parse(user.UserId);
             transaction.CreatedDate = DateTime.UtcNow;
-            await TransService.WriteNewTransaction(transaction);
-            await TransService.SendTransactionForProcessing(transaction);
+            await TransService.WriteNewTransactionAsync(transaction);
+            await TransService.SendTransactionForProcessingAsync(transaction);
 
             return new AcceptedResult(transaction.Id.ToString(), transaction.Id.ToString());
         }
@@ -45,7 +45,7 @@ namespace TransactionService.Functions
             if (user == null)
                 return new NotFoundResult();
 
-            var request = JsonConvert.DeserializeObject<DepositRequest>(await req.Content.ReadAsStringAsync());
+            var request = JsonConvert.DeserializeObject<DepositRequest>(await req.ReadAsStringAsync());
             var imageBytes = Convert.FromBase64String(request.DepositImageBase64);
             var imageId = await BlobService.SaveDepositImageAsync(imageBytes);
 
@@ -55,14 +55,25 @@ namespace TransactionService.Functions
                 TargetAccount = request.TargetAccount,
                 DepositImageUrl = BlobService.GetDepositImageUrl(imageId)
             });
-
-            return new AcceptedResult(string.Empty, string.Empty);
+            
+            return new AcceptedResult(imageId, imageId);
         }
 
         [FunctionName("ProcessDeposit")]
-        public static async Task ProcessDeposit([ServiceBusTrigger("application-queue", Connection = "ServiceBusConnection")]string applicationContents, TraceWriter logger)
+        public static async Task ProcessDeposit([ServiceBusTrigger("application-queue", Connection = "ServiceBusConnectionString")]string depositContents, ILogger logger)
         {
-            
+            var pendingDeposit = JsonConvert.DeserializeObject<PendingDeposit>(depositContents);
+            var amount = await VisionService.DetermineImageValueAsync(pendingDeposit.DepositImageUrl);
+            var depositTransaction = new Transaction()
+            {
+                TargetAccount = Guid.Parse(pendingDeposit.TargetAccount),
+                Amount = amount,
+                Owner = Guid.Parse(pendingDeposit.Initiator),
+                CreatedDate = DateTime.UtcNow
+            };
+
+            await TransService.WriteNewTransactionAsync(depositTransaction);
+            await TransService.SendTransactionForProcessingAsync(depositTransaction);
         }
 
         [FunctionName("ProcessTransactions")]
