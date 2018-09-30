@@ -24,6 +24,7 @@ namespace TransactionService.Models
             }
         }
 
+        public string Source { get; set; }
         public string ImageUrl { get; set; }
         public string TargetAccount { get; set; }
         public string DepositOwner { get; set; }
