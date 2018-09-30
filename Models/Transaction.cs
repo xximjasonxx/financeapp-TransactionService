@@ -25,6 +25,8 @@ namespace TransactionService.Models
             }
         }
 
+        public string TargetEntity { get; set; }
+
         public string TargetAccount { get; set; }
 
         public decimal Amount { get; set; }
@@ -40,6 +42,15 @@ namespace TransactionService.Models
         public string StatusDisplay
         {
             get => Status.ToString();
+        }
+
+        [JsonProperty("typeCode")]
+        public TransactionType TransactionType { get; set; }
+
+        [JsonProperty("transactionType")]
+        public string TransactionTypeDisplay
+        {
+            get => TransactionType.ToString();
         }
     }
 }

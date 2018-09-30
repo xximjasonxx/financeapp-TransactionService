@@ -6,4 +6,10 @@ namespace TransactionService
         Approved,
         Rejected
     }
+
+    public enum TransactionType
+    {
+        Payment,
+        Deposit
+    }
 }

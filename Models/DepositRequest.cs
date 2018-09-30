@@ -8,6 +8,8 @@ namespace TransactionService.Models
         public string TargetAccount {get; set; }
 
         [JsonProperty("DepositImage")]
-        public string DepositImageBase64 {get; set; }
+        public string DepositImageBase64 { get; set; }
+
+        public string Source { get; set; }
     }
 }

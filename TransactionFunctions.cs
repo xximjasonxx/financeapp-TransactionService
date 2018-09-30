@@ -28,9 +28,18 @@ namespace TransactionService.Functions
             if (user == null)
                 return new NotFoundResult();
 
-            var transaction = JsonConvert.DeserializeObject<Transaction>(await req.ReadAsStringAsync());
-            transaction.Owner = user.UserId;
-            transaction.CreatedDate = DateTime.UtcNow;
+            var request = JsonConvert.DeserializeObject<TransactionRequest>(await req.ReadAsStringAsync());
+            var transaction = new Transaction
+            {
+                Owner = user.UserId,
+                CreatedDate = DateTime.UtcNow,
+                TransactionType = TransactionType.Payment,
+                Amount = request.Amount,
+                TargetAccount = request.TargetAccount,
+                TargetEntity = request.Payee,
+                Status = TransactionStatus.Pending
+            };
+
             await TransService.WriteNewTransactionAsync(transaction);
             await TransService.SendTransactionForProcessingAsync(transaction);
 
@@ -45,7 +54,8 @@ namespace TransactionService.Functions
             if (user == null)
                 return new NotFoundResult();
 
-            var request = JsonConvert.DeserializeObject<DepositRequest>(await req.ReadAsStringAsync());
+            var requestContents = await req.ReadAsStringAsync();
+            var request = JsonConvert.DeserializeObject<DepositRequest>(requestContents);
             var imageBytes = Convert.FromBase64String(request.DepositImageBase64);
             var imageId = await BlobService.SaveDepositImageAsync(imageBytes);
 
@@ -53,7 +63,8 @@ namespace TransactionService.Functions
             {
                 ImageUrl = BlobService.GetDepositImageUrl(imageId),
                 TargetAccount = request.TargetAccount,
-                DepositOwner = user.UserId
+                DepositOwner = user.UserId,
+                Source = request.Source
             };
 
             var depositId = await TransService.RecordDepositRequest(pendingDeposit);
@@ -85,7 +96,10 @@ namespace TransactionService.Functions
                 CreatedDate = DateTime.UtcNow,
                 TargetAccount = pendingDeposit.TargetAccount,
                 Owner = pendingDeposit.DepositOwner,
-                Amount = amount
+                Amount = amount,
+                TransactionType = TransactionType.Deposit,
+                TargetEntity = pendingDeposit.Source,
+                Status = TransactionStatus.Pending
             };
 
             var transactionId = await TransService.WriteNewTransactionAsync(transaction);
