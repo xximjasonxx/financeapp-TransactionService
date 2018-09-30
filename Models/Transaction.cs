@@ -33,6 +33,13 @@ namespace TransactionService.Models
 
         public DateTime CreatedDate { get; set; }
 
+        [JsonProperty("statusCode")]
         public TransactionStatus Status { get; set; }
+
+        [JsonProperty("status")]
+        public string StatusDisplay
+        {
+            get => Status.ToString();
+        }
     }
 }
