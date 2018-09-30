@@ -82,7 +82,7 @@ namespace TransactionService.Functions
                 return new NotFoundResult();
 
             var accountTransactions = await TransService.GetTransactions(accountId);
-            return new OkObjectResult(accountTransactions);
+            return new OkObjectResult(accountTransactions.OrderByDescending(x => x.CreatedDate));
         }
 
         [FunctionName("ProcessDeposit")]
