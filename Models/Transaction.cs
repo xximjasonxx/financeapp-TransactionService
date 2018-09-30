@@ -25,11 +25,11 @@ namespace TransactionService.Models
             }
         }
 
-        public Guid TargetAccount { get; set; }
+        public string TargetAccount { get; set; }
 
         public decimal Amount { get; set; }
 
-        public Guid Owner { get; set; }
+        public string Owner { get; set; }
 
         public DateTime CreatedDate { get; set; }
 

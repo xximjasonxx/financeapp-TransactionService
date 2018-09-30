@@ -29,7 +29,7 @@ namespace TransactionService.Functions
                 return new NotFoundResult();
 
             var transaction = JsonConvert.DeserializeObject<Transaction>(await req.ReadAsStringAsync());
-            transaction.Owner = Guid.Parse(user.UserId);
+            transaction.Owner = user.UserId;
             transaction.CreatedDate = DateTime.UtcNow;
             await TransService.WriteNewTransactionAsync(transaction);
             await TransService.SendTransactionForProcessingAsync(transaction);
@@ -71,8 +71,8 @@ namespace TransactionService.Functions
             var transaction = new Transaction
             {
                 CreatedDate = DateTime.UtcNow,
-                TargetAccount = Guid.Parse(pendingDeposit.TargetAccount),
-                Owner = Guid.Parse(pendingDeposit.DepositOwner),
+                TargetAccount = pendingDeposit.TargetAccount,
+                Owner = pendingDeposit.DepositOwner,
                 Amount = amount
             };
 
