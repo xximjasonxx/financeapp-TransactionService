@@ -34,7 +34,7 @@ namespace TransactionService.Functions
                 Owner = user.UserId,
                 CreatedDate = DateTime.UtcNow,
                 TransactionType = TransactionType.Payment,
-                Amount = request.Amount,
+                Amount = request.Amount > 0 ? request.Amount * -1 : request.Amount,
                 TargetAccount = request.TargetAccount,
                 TargetEntity = request.Payee,
                 Status = TransactionStatus.Pending
