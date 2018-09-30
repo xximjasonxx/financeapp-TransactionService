@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using MongoDB.Bson;
@@ -57,6 +58,15 @@ namespace TransactionService.Services
 
             await collection.InsertOneAsync(pendingDeposit);
             return pendingDeposit.Id;
+        }
+
+        public static async Task<List<Transaction>> GetTransactions(string accountId)
+        {
+            var database = GetDatabase();
+            var collection = database.GetCollection<Transaction>("transactions");
+
+            var rawResults = await collection.FindAsync((x) => x.TargetAccount == accountId);
+            return await rawResults.ToListAsync();
         }
     }
 }
