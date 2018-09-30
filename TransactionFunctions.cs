@@ -29,7 +29,7 @@ namespace TransactionService.Functions
                 return new NotFoundResult();
 
             var transaction = JsonConvert.DeserializeObject<Transaction>(await req.ReadAsStringAsync());
-            transaction.Owner = Guid.Parse(user.UserId);
+            transaction.Owner = user.UserId;
             transaction.CreatedDate = DateTime.UtcNow;
             await TransService.WriteNewTransactionAsync(transaction);
             await TransService.SendTransactionForProcessingAsync(transaction);
@@ -62,6 +62,18 @@ namespace TransactionService.Functions
             return new AcceptedResult(depositId, depositId);
         }
 
+        [FunctionName("GetTransactions")]
+        public static async Task<IActionResult> GetTransactions([HttpTrigger(AuthorizationLevel.Function, "get", Route = "{accountId}")]HttpRequest req, string accountId, ILogger log)
+        {
+            var token = req.Headers["auth-key"].ToString().AsJwtToken();
+            var user = await TokenService.GetUserIdForToken(token);
+            if (user == null)
+                return new NotFoundResult();
+
+            var accountTransactions = await TransService.GetTransactions(accountId);
+            return new OkObjectResult(accountTransactions);
+        }
+
         [FunctionName("ProcessDeposit")]
         public static async Task ProcessDeposit([ServiceBusTrigger("new-deposits", Connection = "ServiceBusConnectionString")]string pendingDepositContents, ILogger logger)
         {
@@ -71,8 +83,8 @@ namespace TransactionService.Functions
             var transaction = new Transaction
             {
                 CreatedDate = DateTime.UtcNow,
-                TargetAccount = Guid.Parse(pendingDeposit.TargetAccount),
-                Owner = Guid.Parse(pendingDeposit.DepositOwner),
+                TargetAccount = pendingDeposit.TargetAccount,
+                Owner = pendingDeposit.DepositOwner,
                 Amount = amount
             };
 
