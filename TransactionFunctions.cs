@@ -63,7 +63,7 @@ namespace TransactionService.Functions
         }
 
         [FunctionName("GetTransactions")]
-        public static async Task<IActionResult> GetTransactions([HttpTrigger(AuthorizationLevel.Function, "get", Route = "{accountId}")]HttpRequest req, string accountId, ILogger log)
+        public static async Task<IActionResult> GetTransactions([HttpTrigger(AuthorizationLevel.Function, "get", Route = "account/{accountId}")]HttpRequest req, string accountId, ILogger log)
         {
             var token = req.Headers["auth-key"].ToString().AsJwtToken();
             var user = await TokenService.GetUserIdForToken(token);
